@@ -218,6 +218,9 @@
   // 23400 → «23 400»
   function fmt(n) { return Math.round(n).toLocaleString('ru-RU').replace(/\u202f/g, '\u00a0'); }
 
+  // 1.5 → «1,5»; 1200 → «1 200» (для площадей, метров и т.п. — без округления до целого)
+  function fmtNum(n) { return Number(n).toLocaleString('ru-RU', { maximumFractionDigits: 2 }).replace(/\u202f/g, '\u00a0'); }
+
   // 23400 → «2X XXX» (первая цифра видна, остальные скрыты)
   function maskMoney(n) {
     var first = true;
@@ -432,12 +435,25 @@
     return fetch(url, opts).finally(function () { clearTimeout(timer); });
   }
 
-  // Локальный config.json. Если страница открыта как файл (file://),
-  // браузер не даёт прочитать JSON — тогда подключаем config.js (его копию).
+  // Какой файл настроек читать. По умолчанию config.json, но странице можно указать свой:
+  // <body data-config="kuhni.json"> — так на одном сайте живут лендинги для разных ниш.
+  function configPath() {
+    return (document.body && document.body.getAttribute('data-config')) || 'config.json';
+  }
+
+  // Ключ localStorage с учётом файла настроек, чтобы ниши не перетирали данные друг друга.
+  function lsKey(base) {
+    var path = configPath();
+    return path === 'config.json' ? base : base + ':' + path;
+  }
+
+  // Локальный файл настроек. Если страница открыта как файл (file://),
+  // браузер не даёт прочитать JSON — тогда подключаем config.js (копию config.json).
   function loadLocalConfig() {
-    return fetchWithTimeout('config.json', { cache: 'no-cache' }, 4000)
+    return fetchWithTimeout(configPath(), { cache: 'no-cache' }, 4000)
       .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
       .catch(function () {
+        if (configPath() !== 'config.json') return null;
         if (window.QUIZ_CONFIG) return window.QUIZ_CONFIG;
         return new Promise(function (resolve) {
           var sc = document.createElement('script');
@@ -496,17 +512,17 @@
     return loadLocalConfig().then(function (local) {
       var sheets = (local && local.sheets) || {};
       var hasSheets = !!(sheets.settings && sheets.questions && sheets.options);
-      var cached = storage.get(LS.config);
+      var cached = storage.get(lsKey(LS.config));
 
       if (!hasSheets) {
-        if (local) { storage.set(LS.config, { key: 'local', raw: local, ts: Date.now() }); return { raw: local, source: 'config.json' }; }
+        if (local) { storage.set(lsKey(LS.config), { key: 'local', raw: local, ts: Date.now() }); return { raw: local, source: configPath() }; }
         if (cached && cached.raw) return { raw: cached.raw, source: 'кеш' };
         return { raw: null, source: 'нет данных' };
       }
 
       var key = sheetsKey(sheets);
       var fresh = loadSheets(sheets, local).then(function (raw) {
-        storage.set(LS.config, { key: key, raw: raw, ts: Date.now() });
+        storage.set(lsKey(LS.config), { key: key, raw: raw, ts: Date.now() });
         return raw;
       });
 
@@ -518,8 +534,8 @@
         return { raw: raw, source: 'Google Таблица' };
       }).catch(function (e) {
         console.warn('[Квиз] Таблица недоступна, используем запасной вариант:', e.message);
-        if (cached && cached.raw && cached.key !== 'local') return { raw: cached.raw, source: 'кеш' };
-        return { raw: local, source: 'config.json' };
+        if (cached && cached.raw && cached.key === key) return { raw: cached.raw, source: 'кеш' };
+        return { raw: local, source: configPath() };
       });
     });
   }
@@ -769,11 +785,11 @@
 
   function saveProgress() {
     if (state.done) return;
-    storage.set(LS.progress, { sig: cfg.signature, index: state.index, answers: state.answers, ts: Date.now() });
+    storage.set(lsKey(LS.progress), { sig: cfg.signature, index: state.index, answers: state.answers, ts: Date.now() });
   }
 
   function restoreProgress() {
-    var p = storage.get(LS.progress);
+    var p = storage.get(lsKey(LS.progress));
     if (!p || p.sig !== cfg.signature || !p.ts || Date.now() - p.ts > PROGRESS_TTL_MS) return false;
     var answers = {};
     Q().forEach(function (q) {
@@ -807,8 +823,8 @@
     if (q.type === 'number' || q.type === 'slider') {
       var v = num(a);
       if (!isFinite(v)) return q.required ? 'Введите число' : '';
-      if (isFinite(q.min) && v < q.min) return 'Минимальное значение — ' + fmt(q.min) + (q.unit ? ' ' + q.unit : '');
-      if (isFinite(q.max) && v > q.max) return 'Максимальное значение — ' + fmt(q.max) + (q.unit ? ' ' + q.unit : '');
+      if (isFinite(q.min) && v < q.min) return 'Минимальное значение — ' + fmtNum(q.min) + (q.unit ? ' ' + q.unit : '');
+      if (isFinite(q.max) && v > q.max) return 'Максимальное значение — ' + fmtNum(q.max) + (q.unit ? ' ' + q.unit : '');
     }
     return '';
   }
@@ -828,7 +844,7 @@
           text = 'ничего не выбрано';
         }
       } else if (isFinite(num(a))) {
-        text = String(num(a)).replace('.', ',') + (q.unit ? ' ' + q.unit : '');
+        text = fmtNum(num(a)) + (q.unit ? ' ' + q.unit : '');
       }
       return { q: q.title, a: text, role: q.role };
     });
@@ -914,9 +930,9 @@
     var el = $('#hero-inner');
     if (!el) return;
     var benefits = [s.benefit_1, s.benefit_2, s.benefit_3].map(benefitHTML).join('');
-    var cta = resumed && state.index > 0
-      ? 'Продолжить расчёт — шаг ' + Math.min(state.index + 1, Q().length + 1)
-      : s.cta_text;
+    var cta = s.cta_text;
+    if (resumed && state.index >= Q().length) cta = 'Расчёт готов — получить результат';
+    else if (resumed && state.index > 0) cta = 'Продолжить расчёт — шаг ' + (state.index + 1);
     el.innerHTML =
       '<div class="hero__content">' +
         (s.hero_badge ? '<p class="hero__badge">' + ICON.pin + '<span>' + esc(s.hero_badge) + '</span></p>' : '') +
@@ -1041,20 +1057,20 @@
       body =
         '<div class="range">' +
           '<div class="range__value">' +
-            '<input class="range__input" type="number" inputmode="decimal" id="range-input" min="' + q.min + '" max="' + q.max + '" step="' + q.stepSize + '" value="' + v + '" aria-label="' + esc(q.title) + (q.unit ? ', ' + esc(q.unit) : '') + '" data-range-input>' +
+            // type="text": поле type="number" в части браузеров не принимает запятую («4,5»)
+            '<input class="range__input" type="text" inputmode="decimal" autocomplete="off" id="range-input" value="' + esc(fmtNum(v)) + '" aria-label="' + esc(q.title) + (q.unit ? ', ' + esc(q.unit) : '') + '" data-range-input>' +
             (q.unit ? '<span class="range__unit">' + esc(q.unit) + '</span>' : '') +
           '</div>' +
-          '<input class="range__slider" type="range" min="' + q.min + '" max="' + q.max + '" step="' + q.stepSize + '" value="' + v + '" style="--fill:' + fill + '%" aria-labelledby="step-title"' + describedBy + ' aria-valuetext="' + esc(v + (q.unit ? ' ' + q.unit : '')) + '" data-range>' +
-          '<div class="range__scale" aria-hidden="true"><span>' + fmt(q.min) + ' ' + esc(q.unit) + '</span><span>' + fmt(q.max) + ' ' + esc(q.unit) + '</span></div>' +
+          '<input class="range__slider" type="range" min="' + q.min + '" max="' + q.max + '" step="' + q.stepSize + '" value="' + v + '" style="--fill:' + fill + '%" aria-labelledby="step-title"' + describedBy + ' aria-valuetext="' + esc(fmtNum(v) + (q.unit ? ' ' + q.unit : '')) + '" data-range>' +
+          '<div class="range__scale" aria-hidden="true"><span>' + fmtNum(q.min) + ' ' + esc(q.unit) + '</span><span>' + fmtNum(q.max) + ' ' + esc(q.unit) + '</span></div>' +
         '</div>';
     } else {
       var nv = isFinite(num(a)) ? num(a) : (isFinite(q.def) ? q.def : '');
       body =
         '<div class="number">' +
           '<button type="button" class="number__btn" data-num="-1" aria-label="Уменьшить">−</button>' +
-          '<input class="number__input" type="number" inputmode="decimal" id="number-input"' +
-            (isFinite(q.min) ? ' min="' + q.min + '"' : '') + (isFinite(q.max) ? ' max="' + q.max + '"' : '') +
-            ' step="' + q.stepSize + '" value="' + esc(nv) + '" aria-labelledby="step-title"' + describedBy + ' data-number>' +
+          '<input class="number__input" type="text" inputmode="decimal" autocomplete="off" id="number-input"' +
+            ' value="' + esc(nv === '' ? '' : fmtNum(nv)) + '" aria-labelledby="step-title"' + describedBy + ' data-number>' +
           (q.unit ? '<span class="number__unit">' + esc(q.unit) + '</span>' : '') +
           '<button type="button" class="number__btn" data-num="1" aria-label="Увеличить">+</button>' +
         '</div>';
@@ -1435,9 +1451,9 @@
     if (slider) {
       slider.value = clamped;
       slider.style.setProperty('--fill', ((clamped - q.min) / (q.max - q.min)) * 100 + '%');
-      slider.setAttribute('aria-valuetext', clamped + (q.unit ? ' ' + q.unit : ''));
+      slider.setAttribute('aria-valuetext', fmtNum(clamped) + (q.unit ? ' ' + q.unit : ''));
     }
-    if (input && source !== 'typing') input.value = clamped;
+    if (input && source !== 'typing') input.value = fmtNum(clamped);
     clearStepError();
     markStarted();
     saveProgress();
@@ -1453,7 +1469,7 @@
       if (isFinite(q.min)) v = Math.max(v, q.min);
       if (isFinite(q.max)) v = Math.min(v, q.max);
       var inp = $('[data-number]');
-      if (inp) inp.value = v;
+      if (inp) inp.value = fmtNum(v);
     }
     state.answers[q.id] = v;
     clearStepError();
@@ -1467,7 +1483,7 @@
     state.index = 0;
     state.done = false;
     state.result = null;
-    storage.remove(LS.progress);
+    storage.remove(lsKey(LS.progress));
     renderStep(-1, true);
   }
 
@@ -1819,7 +1835,7 @@
       delete lead.website;
       state.result = { ok: ok, lead: lead };
       state.done = true;
-      storage.remove(LS.progress);
+      storage.remove(lsKey(LS.progress));
       goal(ok ? 'lead_sent' : 'lead_failed');
       renderStep(1, true);
     });
