@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+
+  <!--
+    SEO и превью ссылки в мессенджерах.
+    title, description и favicon сайт сам подставит из таблицы (meta_title, meta_description, favicon_url).
+    НО: Telegram, WhatsApp и ВКонтакте не запускают JavaScript, когда строят превью ссылки,
+    поэтому строки og:* ниже нужно один раз поправить руками под свою компанию.
+  -->
+  <title>Калькулятор стоимости натяжного потолка</title>
+  <meta name="description" content="Рассчитайте стоимость натяжного потолка за 1 минуту. Бесплатный замер, гарантия, монтаж за 1 день.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:title" content="Рассчитайте стоимость натяжного потолка за 1 минуту">
+  <meta property="og:description" content="Ответьте на 6 вопросов — покажем цену и закрепим за вами подарок.">
+  <!-- После публикации замените на полный адрес: https://ваш-сайт.ru/img/og-image.png -->
+  <meta property="og:image" content="img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#3A5BD9">
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="img/apple-touch-icon.png">
+
+  <!-- Шрифт Manrope с кириллицей. display=swap — текст виден сразу, даже пока шрифт грузится -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap">
+
+  <!-- Заранее начинаем качать настройки, чтобы страница появилась быстрее -->
+  <link rel="preload" href="config.json" as="fetch" crossorigin="anonymous">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body id="top" data-page="quiz">
+  <a class="skip-link" href="#quiz">Перейти к расчёту стоимости</a>
+
+  <header class="site-header" id="site-header">
+    <div class="container header__inner">
+      <span class="skeleton skeleton--brand"></span>
+    </div>
+  </header>
+
+  <main>
+    <!-- Первый экран -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container hero__inner" id="hero-inner">
+        <div class="hero__content" aria-busy="true">
+          <span class="skeleton skeleton--badge"></span>
+          <span class="skeleton skeleton--title"></span>
+          <span class="skeleton skeleton--title skeleton--short"></span>
+          <span class="skeleton skeleton--text"></span>
+          <span class="skeleton skeleton--btn"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Квиз-калькулятор -->
+    <section class="quiz-section" id="quiz" aria-label="Калькулятор стоимости">
+      <div class="container">
+        <div class="quiz" id="quiz-root"></div>
+      </div>
+    </section>
+
+    <!-- Наши работы и отзывы (появится, если заполнен лист «Отзывы и работы») -->
+    <section class="works" id="works" hidden></section>
+  </main>
+
+  <footer class="site-footer" id="site-footer"></footer>
+
+  <noscript>
+    <div class="noscript">Для расчёта стоимости включите JavaScript в браузере или позвоните нам.</div>
+  </noscript>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

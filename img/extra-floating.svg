@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300" role="img" aria-label="Парящий потолок">
+<defs>
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A9C8EC"/><stop offset="1" stop-color="#DCEAF7"/></linearGradient>
+<linearGradient id="fl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B48C68"/><stop offset="1" stop-color="#C9A27E"/></linearGradient>
+<radialGradient id="glow"><stop offset="0" stop-color="#FFF8DC"/><stop offset=".35" stop-color="#FFE9A8" stop-opacity=".8"/><stop offset="1" stop-color="#FFE9A8" stop-opacity="0"/></radialGradient>
+<filter id="blur" x="-20%" y="-50%" width="140%" height="200%"><feGaussianBlur stdDeviation="3"/></filter>
+<linearGradient id="c" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FBFAF8"/><stop offset="1" stop-color="#F0ECE6"/></linearGradient>
+</defs>
+<path d="M84 78h232v158H84z" fill="#EDE6DD"/>
+<path d="M0 0l84 78v158L0 300z" fill="#E2D9CE"/>
+<path d="M400 0l-84 78v158l84 64z" fill="#E7DFD5"/>
+<path d="M0 300l84-64h232l84 64z" fill="url(#fl)"/>
+<path d="M60 300l38-64M140 300l14-64M220 300l-6-64M300 300l-24-64" stroke="#000" stroke-opacity=".06" stroke-width="2"/>
+<rect x="150" y="104" width="100" height="90" rx="3" fill="url(#sky)" stroke="#fff" stroke-width="5"/>
+<path d="M200 104v90M150 150h100" stroke="#fff" stroke-width="4"/>
+<rect x="104" y="204" width="192" height="30" rx="10" fill="#8A93A8"/>
+<rect x="112" y="190" width="176" height="22" rx="9" fill="#8A93A8" opacity=".85"/>
+<path d="M0 0h400l-84 78H84z" fill="url(#c)"/>
+<path d="M0 0l84 78h232L400 0" fill="none" stroke="#FFE7A3" stroke-width="14" filter="url(#blur)"/>
+<path d="M0 0l84 78h232L400 0" fill="none" stroke="#FFFBEA" stroke-width="4"/>
+</svg>

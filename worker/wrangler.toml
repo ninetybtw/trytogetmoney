@@ -1,0 +1,14 @@
+# Настройки для развёртывания воркера из командной строки (необязательно).
+# Владельцу бизнеса проще сделать всё через сайт Cloudflare — см. README.md, шаг 3.
+#
+#   npx wrangler deploy
+#   npx wrangler secret put TELEGRAM_BOT_TOKEN
+#
+name = "quiz-leads"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[vars]
+TELEGRAM_CHAT_ID = ""          # например 123456789
+ALLOWED_ORIGINS = ""           # например https://potolki.ru,https://ivan.github.io
+TIMEZONE = "Europe/Moscow"
